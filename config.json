@@ -1,0 +1,10 @@
+{
+  "watch_directories": [
+    "C:\\Users\\user\\Downloads",
+    "C:\\Users\\user\\Downloads\\chatwork送る",
+    "C:\\Users\\user\\Downloads\\電帳法"
+  ],
+  "ignore_extensions": [".crdownload", ".tmp", ".part"],
+  "wait_seconds": 2,
+  "rename_rule": "{date}_{stem}_v{suffix}"
+}
