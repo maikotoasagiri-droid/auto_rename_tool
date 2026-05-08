@@ -20,9 +20,16 @@ CONFIG_PATH = Path(__file__).parent / "config.json"
 def load_config():
     if CONFIG_PATH.exists():
         with open(CONFIG_PATH, "r", encoding="utf-8") as f:
-            return json.load(f)
+            config = json.load(f)
+            # パスの自動調整 (~ をユーザーディレクトリに置換)
+            config["watch_directories"] = [
+                os.path.expanduser(d) for d in config["watch_directories"]
+            ]
+            return config
+    
+    # デフォルト設定
     return {
-        "watch_directories": [str(Path.home() / "Downloads")],
+        "watch_directories": [os.path.expanduser("~/Downloads")],
         "ignore_extensions": [".crdownload", ".tmp", ".part"],
         "wait_seconds": 2,
         "rename_rule": "{date}_{stem}_v{suffix}"
@@ -31,7 +38,6 @@ def load_config():
 class RenameHandler(FileSystemEventHandler):
     def __init__(self, config):
         self.config = config
-        # 日付パターンの正規表現 (例: 20240508_ or 20240508 )
         self.date_pattern = re.compile(r"^\d{8}[_ ]")
 
     def on_created(self, event):
@@ -44,20 +50,16 @@ class RenameHandler(FileSystemEventHandler):
 
     def process(self, filepath):
         path = Path(filepath)
-        
         if path.suffix.lower() in self.config["ignore_extensions"]:
             return
 
-        # 既にこのプログラムでリネーム済みか（日付 + _v があるか）
         filename = path.name
         if self.date_pattern.match(filename) and "_v" in path.stem:
             return
 
         print(f"Processing: {filename}")
-        
         time.sleep(self.config["wait_seconds"])
         
-        # 最新のパス状態を取得（待機中に消えたりしていないか）
         if not path.exists():
             return
 
@@ -73,28 +75,19 @@ class RenameHandler(FileSystemEventHandler):
         stem = path.stem
         suffix = path.suffix
         
-        # 1. すでに日付から始まっているかチェック
         has_date = self.date_pattern.match(stem)
-        
-        # 2. すでに _v がついているかチェック
         has_v = stem.endswith("_v") or re.search(r"_v\d+$", stem)
 
         new_stem = stem
-        
-        # 日付がなければ先頭に追加
         if not has_date:
             new_stem = f"{date_str}_{new_stem}"
-        
-        # _v がなければ末尾に追加
         if not has_v:
             new_stem = f"{new_stem}_v"
             
         new_name = f"{new_stem}{suffix}"
         
-        # 重複回避
         counter = 2
         while (path.parent / new_name).exists() and new_name != path.name:
-            # すでに _v がついている場合は _v2, _v3... としていく
             if "_v" in new_stem:
                 base_stem = re.sub(r"_v\d*$", "", new_stem)
                 new_name = f"{base_stem}_v{counter}{suffix}"
@@ -107,7 +100,6 @@ class RenameHandler(FileSystemEventHandler):
     def safe_rename(self, old_path, new_path):
         if old_path == new_path:
             return True
-            
         max_retries = 5
         for i in range(max_retries):
             try:
@@ -130,7 +122,17 @@ def main():
         if os.path.exists(watch_dir):
             observer.schedule(event_handler, watch_dir, recursive=False)
             print(f"Watching: {watch_dir}")
-    
+        else:
+            # フォルダが存在しない場合は作成を試みる（任意）
+            try:
+                # os.makedirs(watch_dir, exist_ok=True)
+                # observer.schedule(event_handler, watch_dir, recursive=False)
+                # print(f"Created and Watching: {watch_dir}")
+                print(f"Directory not found, skipping: {watch_dir}")
+            except Exception:
+                print(f"Warning: Directory not found and could not be created: {watch_dir}")
+
+    print("Starting watcher... Press Ctrl+C to stop.")
     observer.start()
     try:
         while True:
