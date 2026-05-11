@@ -2,7 +2,8 @@
   "watch_directories": [
     "~/Downloads",
     "~/Downloads/chatwork送る",
-    "~/Downloads/電帳法"
+    "~/Downloads/電帳法",
+    "~/Downloads/classi"
   ],
   "ignore_extensions": [".crdownload", ".tmp", ".part"],
   "wait_seconds": 2,

@@ -5,9 +5,22 @@ import datetime
 import json
 import sys
 import re
+import logging
 from pathlib import Path
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
+
+# --- ロギング設定 ---
+LOG_FILE = Path(__file__).parent / "rename_log.log"
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler(LOG_FILE, encoding='utf-8'),
+        logging.StreamHandler(sys.stdout)
+    ]
+)
+logger = logging.getLogger(__name__)
 
 # --- エンコーディング設定 ---
 if sys.platform == 'win32':
@@ -38,7 +51,7 @@ def load_config():
 class RenameHandler(FileSystemEventHandler):
     def __init__(self, config):
         self.config = config
-        self.date_pattern = re.compile(r"^\d{8}[_ ]")
+        self.date_pattern = re.compile(r"^\d{8}")
 
     def on_created(self, event):
         if not event.is_directory:
@@ -54,10 +67,10 @@ class RenameHandler(FileSystemEventHandler):
             return
 
         filename = path.name
-        if self.date_pattern.match(filename) and "_v" in path.stem:
+        if self.date_pattern.match(filename) and (stem.endswith("_v") or re.search(r"_v\d+$", stem)):
             return
 
-        print(f"Processing: {filename}")
+        logger.info(f"Processing: {filename}")
         time.sleep(self.config["wait_seconds"])
         
         if not path.exists():
@@ -104,12 +117,12 @@ class RenameHandler(FileSystemEventHandler):
         for i in range(max_retries):
             try:
                 os.rename(old_path, new_path)
-                print(f"Renamed: {old_path.name} -> {new_path.name}")
+                logger.info(f"Renamed: {old_path.name} -> {new_path.name}")
                 return True
             except PermissionError:
                 time.sleep(1)
             except Exception as e:
-                print(f"Error: {e}")
+                logger.error(f"Error renaming {old_path.name}: {e}")
                 break
         return False
 
@@ -121,23 +134,17 @@ def main():
     for watch_dir in config["watch_directories"]:
         if os.path.exists(watch_dir):
             observer.schedule(event_handler, watch_dir, recursive=False)
-            print(f"Watching: {watch_dir}")
+            logger.info(f"Watching: {watch_dir}")
         else:
-            # フォルダが存在しない場合は作成を試みる（任意）
-            try:
-                # os.makedirs(watch_dir, exist_ok=True)
-                # observer.schedule(event_handler, watch_dir, recursive=False)
-                # print(f"Created and Watching: {watch_dir}")
-                print(f"Directory not found, skipping: {watch_dir}")
-            except Exception:
-                print(f"Warning: Directory not found and could not be created: {watch_dir}")
+            logger.warning(f"Directory not found, skipping: {watch_dir}")
 
-    print("Starting watcher... Press Ctrl+C to stop.")
+    logger.info("Starting watcher... Press Ctrl+C to stop.")
     observer.start()
     try:
         while True:
             time.sleep(1)
     except KeyboardInterrupt:
+        logger.info("Stopping watcher...")
         observer.stop()
     observer.join()
 
