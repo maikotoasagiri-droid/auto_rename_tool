@@ -67,7 +67,7 @@ class RenameHandler(FileSystemEventHandler):
             return
 
         filename = path.name
-        if self.date_pattern.match(filename) and (stem.endswith("_v") or re.search(r"_v\d+$", stem)):
+        if self.date_pattern.match(filename) and (path.stem.endswith("_v") or re.search(r"_v\d+$", path.stem)):
             return
 
         logger.info(f"Processing: {filename}")
@@ -95,7 +95,7 @@ class RenameHandler(FileSystemEventHandler):
         if not has_date:
             new_stem = f"{date_str}_{new_stem}"
         if not has_v:
-            new_stem = f"{new_stem}_v"
+            new_stem = f"{new_stem}_v1"
             
         new_name = f"{new_stem}{suffix}"
         
