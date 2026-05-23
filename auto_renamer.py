@@ -10,23 +10,23 @@ from pathlib import Path
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
-# --- ロギング設定 ---
-LOG_FILE = Path(__file__).parent / "rename_log.log"
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler(LOG_FILE, encoding='utf-8'),
-        logging.StreamHandler(sys.stdout)
-    ]
-)
-logger = logging.getLogger(__name__)
-
 # --- エンコーディング設定 ---
-if sys.platform == 'win32':
+if sys.platform == 'win32' and sys.stdout is not None:
     import io
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
+
+# --- ロギング設定 ---
+LOG_FILE = Path(__file__).parent / "rename_log.log"
+_handlers = [logging.FileHandler(LOG_FILE, encoding='utf-8')]
+if sys.stdout is not None:
+    _handlers.append(logging.StreamHandler(sys.stdout))
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=_handlers
+)
+logger = logging.getLogger(__name__)
 
 CONFIG_PATH = Path(__file__).parent / "config.json"
 
@@ -94,6 +94,8 @@ class RenameHandler(FileSystemEventHandler):
         new_stem = stem
         if not has_date:
             new_stem = f"{date_str}_{new_stem}"
+        elif len(new_stem) > 8 and not new_stem[8:].startswith("_"):
+            new_stem = f"{new_stem[:8]}_{new_stem[8:]}"
         if not has_v:
             new_stem = f"{new_stem}_v1"
             
