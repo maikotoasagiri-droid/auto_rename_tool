@@ -25,3 +25,6 @@ Thumbs.db
 # ログ
 *.log
 logs/
+
+# Claude Code 都度承認（PCローカル・共有しない）
+.claude/settings.local.json
