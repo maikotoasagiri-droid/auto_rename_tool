@@ -3,7 +3,8 @@
     "~/Downloads",
     "~/Downloads/chatwork送る",
     "~/Downloads/classi",
-    "~/Downloads/chatwork_upload"
+    "~/Downloads/chatwork_upload",
+    "~/Downloads/INBOX 毎週末に削除"
   ],
   "ignore_extensions": [".crdownload", ".tmp", ".part"],
   "wait_seconds": 2,

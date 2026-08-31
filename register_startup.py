@@ -19,7 +19,8 @@ def register_startup():
 
     # VBSスクリプトの内容
     vbs_content = 'Set WshShell = CreateObject("WScript.Shell")\n'
-    vbs_content += f'WshShell.Run "{pythonw_path} \\"{script_path}\\"", 0, False\n'
+    # VBScriptの文字列内では二重引用符を "" でエスケープする (\" は構文エラー)
+    vbs_content += f'WshShell.Run """{pythonw_path}"" ""{script_path}""", 0, False\n'
     vbs_content += 'Set WshShell = Nothing\n'
     
     try:
