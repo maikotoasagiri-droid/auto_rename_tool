@@ -65,6 +65,9 @@ class RenameHandler(FileSystemEventHandler):
         path = Path(filepath)
         if path.suffix.lower() in self.config["ignore_extensions"]:
             return
+        # Office が文書を開いている間に作る一時ファイル（~$xxx.docx 等）は触らない
+        if path.name.startswith("~$"):
+            return
 
         filename = path.name
         if self.date_pattern.match(filename) and (path.stem.endswith("_v") or re.search(r"_v\d+$", path.stem)):
